@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Whimsy Notes — Preview</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      min-height: 100vh;
+      background: #f0f0f0;
+      font-family: 'Inter', sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 52px;
+      padding: 60px 24px;
+      overflow: hidden;
+    }
+
+    h1 {
+      font-size: 1.6rem;
+      font-weight: 900;
+      color: #000;
+      letter-spacing: -0.5px;
+      text-transform: uppercase;
+      border-bottom: 3px solid #000;
+      padding-bottom: 6px;
+    }
+
+    .notes-row {
+      display: flex;
+      gap: 32px;
+      flex-wrap: wrap;
+      justify-content: center;
+      align-items: flex-start;
+    }
+
+    /* ── Sticky Note ── */
+    .whimsy-note {
+      width: 250px;
+      min-height: 200px;
+      background: #FFF7AD;
+      border: 2px solid #000000;
+      box-shadow: 4px 4px 0px 0px #000000;
+      display: flex;
+      flex-direction: column;
+      font-family: 'Inter', sans-serif;
+      user-select: none;
+      cursor: default;
+      transition: box-shadow 0.1s ease;
+    }
+
+    .whimsy-note.dragging {
+      box-shadow: 8px 8px 0px 0px #000000;
+    }
+
+    /* ── Fall animation ── */
+    @keyframes note-fall {
+      0% {
+        transform: translateY(0) rotate(0deg);
+        opacity: 1;
+      }
+
+      12% {
+        transform: translateY(-14px) rotate(-2deg);
+        opacity: 1;
+      }
+
+      100% {
+        transform: translateY(110vh) rotate(8deg);
+        opacity: 0;
+      }
+    }
+
+    .whimsy-note.falling {
+      animation: note-fall 0.65s cubic-bezier(0.4, 0, 1, 1) forwards;
+      pointer-events: none;
+    }
+
+    /* ── Black header ── */
+    .whimsy-note-header {
+      background: #000000;
+      padding: 4px 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: grab;
+      flex-shrink: 0;
+    }
+
+    .whimsy-note-header:active {
+      cursor: grabbing;
+    }
+
+    .whimsy-note-title {
+      font-family: 'Inter', sans-serif;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: #ffffff;
+      pointer-events: none;
+    }
+
+    /* ── x button ── */
+    .whimsy-note-close {
+      background: transparent;
+      border: none;
+      color: #ffffff;
+      font-size: 16px;
+      font-weight: 700;
+      line-height: 1;
+      cursor: pointer;
+      padding: 0 2px;
+      font-family: 'Inter', sans-serif;
+      transition: opacity 0.1s;
+    }
+
+    .whimsy-note-close:hover {
+      opacity: 0.65;
+    }
+
+    /* ── Yellow body ── */
+    .whimsy-note-textarea {
+      flex: 1;
+      width: 100%;
+      min-height: 160px;
+      background: transparent;
+      border: none;
+      outline: none;
+      resize: none;
+      padding: 16px;
+      font-family: 'Inter', sans-serif;
+      font-size: 14px;
+      font-weight: 400;
+      color: #000000;
+      line-height: 1.5;
+      cursor: text;
+    }
+
+    .whimsy-note-textarea::placeholder {
+      color: rgba(0, 0, 0, 0.2);
+    }
+
+    /* ── Floating Add Button (FAB) ── */
+    .whimsy-fab {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      z-index: 999;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 18px;
+      background: #000000;
+      color: #FFF7AD;
+      font-family: 'Inter', sans-serif;
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      border: 2px solid #000;
+      box-shadow: 4px 4px 0px 0px #555;
+      cursor: pointer;
+      transition: box-shadow 0.1s, transform 0.1s;
+      white-space: nowrap;
+    }
+
+    .whimsy-fab:hover {
+      box-shadow: 6px 6px 0px 0px #555;
+      transform: translate(-2px, -2px);
+    }
+
+    .whimsy-fab:active {
+      box-shadow: 1px 1px 0px 0px #555;
+      transform: translate(3px, 3px);
+    }
+
+    .whimsy-fab-icon {
+      font-size: 18px;
+      line-height: 1;
+      pointer-events: none;
+    }
+  </style>
+</head>
+
+<body>
+
+  <h1>📝 Whimsy Notes</h1>
+  <div class="notes-row" id="notesContainer"></div>
+
+  <!-- Floating Add Button — fixed bottom-right, same as what content.js injects -->
+  <button class="whimsy-fab" onclick="addNote()" title="Add a sticky note">
+    <span class="whimsy-fab-icon">+</span> New Note
+  </button>
+
+  <script>
+    function addNote(text = "") {
+      const container = document.getElementById("notesContainer");
+
+      const note = document.createElement("div");
+      note.className = "whimsy-note";
+
+      const header = document.createElement("div");
+      header.className = "whimsy-note-header";
+
+      const title = document.createElement("span");
+      title.className = "whimsy-note-title";
+      title.textContent = "Sticky Note";
+
+      const closeBtn = document.createElement("button");
+      closeBtn.className = "whimsy-note-close";
+      closeBtn.textContent = "x";
+      closeBtn.onclick = (e) => {
+        e.stopPropagation();
+        note.classList.add("falling");
+        note.addEventListener("animationend", () => note.remove(), { once: true });
+      };
+
+      header.appendChild(title);
+      header.appendChild(closeBtn);
+
+      const textarea = document.createElement("textarea");
+      textarea.className = "whimsy-note-textarea";
+      textarea.placeholder = "Type your note here...";
+      textarea.value = text;
+      textarea.addEventListener("mousedown", e => e.stopPropagation());
+
+      note.appendChild(header);
+      note.appendChild(textarea);
+      container.appendChild(note);
+      textarea.focus();
+
+      // Drag via header
+      let isDragging = false, startX, startY, origLeft, origTop;
+
+      header.addEventListener("mousedown", (e) => {
+        if (e.target === closeBtn) return;
+        const rect = note.getBoundingClientRect();
+        note.style.position = "fixed";
+        note.style.left = rect.left + "px";
+        note.style.top = rect.top + "px";
+        note.style.margin = "0";
+        note.style.zIndex = "9999";
+        document.body.appendChild(note);
+
+        isDragging = true;
+        startX = e.clientX; startY = e.clientY;
+        origLeft = rect.left; origTop = rect.top;
+        note.classList.add("dragging");
+        document.body.style.userSelect = "none";
+        e.preventDefault();
+      });
+
+      document.addEventListener("mousemove", (e) => {
+        if (!isDragging) return;
+        note.style.left = (origLeft + (e.clientX - startX)) + "px";
+        note.style.top = (origTop + (e.clientY - startY)) + "px";
+      });
+
+      document.addEventListener("mouseup", () => {
+        if (!isDragging) return;
+        isDragging = false;
+        note.classList.remove("dragging");
+        document.body.style.userSelect = "";
+      });
+    }
+
+    // Seed notes
+    addNote("https://www.youtube.com/watch?v=haBy-Rhkl4g");
+    addNote("Meeting agenda:\n- Review Q1 targets\n- Design handoff\n- Sprint planning");
+  </script>
+
+</body>
+
+</html>
