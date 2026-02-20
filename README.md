@@ -2,8 +2,6 @@
 
 A lightweight Chrome Extension that injects draggable, persistent **Neo-Brutalist sticky notes** onto any webpage.
 
-![Whimsy Notes Preview](preview.html)
-
 ---
 
 ## ✨ Features
@@ -62,8 +60,4 @@ whimsy-notes/
 | Header | Solid black, bold uppercase 12px |
 | Delete animation | Gravity fall (`110vh`) over 0.65s |
 
----
 
-## 📄 License
-
-MIT
